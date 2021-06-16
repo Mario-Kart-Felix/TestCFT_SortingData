@@ -1,0 +1,19 @@
+We're migrating from Mockito and one of the biggest differences is that the relaxed mock is returning always a value, even if the method has a nullable return type.
+
+We consider it a nice feature not to redefine methods we do not care and wanna let the code handle the default, which is rather a null than empty object (list/map/0/"").
+
+Would you be open to add this behavior to MockK (I would try to make PR)?
+
+Since this would be a great BC break, it should be probably configurable. Ideally the same way as the relax behavior:
+
+via function argument (~mockk(relaxWithNulls = true))
+via project-wide configuration
+Current Behavior
+        class Foo {
+            fun getSomething(): Int? {
+                return 1
+            }
+        }
+
+        val mock = mockk<Foo>(relaxed = true) 
+        assertEquals(null, mock.getSomething()) // fails, returns 0 currently
