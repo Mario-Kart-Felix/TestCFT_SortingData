@@ -1,0 +1,101 @@
+This is the smallest reproducible code that I could find. The idea here is to use ComposeWindow in undecorated mode for displaying popup content (let's say combobox or a complex menu). The content in this secondary ComposeWindow is interactive. Clicking on content in that window changes the underlying data and these changes should be reflected on the screen.
+
+Here's the code first:
+
+import androidx.compose.desktop.AppManager
+import androidx.compose.desktop.ComposeWindow
+import androidx.compose.desktop.Window
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCompositionContext
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+
+@ExperimentalComposeUiApi
+fun main() {
+    Window(
+        title = "Main window",
+        size = IntSize(400, 300),
+        centered = true
+    ) {
+        val topCountA = remember { mutableStateOf(0) }
+        val topCountB = remember { mutableStateOf(0) }
+        val secondaryCount = remember { mutableStateOf(0) }
+
+        val topDataA = Data("Text top A", topCountA.value) { topCountA.value++ }
+        val topDataB = Data("Text top B", topCountB.value) { topCountB.value++ }
+        val secondaryData = Data("Text secondary", secondaryCount.value) { secondaryCount.value++ }
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            BoxContent(topDataA)
+            Spacer(modifier = Modifier.height(12.dp))
+            BoxContent(topDataB)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            val parentComposition = rememberCompositionContext()
+
+            Box(
+                modifier = Modifier.size(100.dp, 50.dp).background(color = Color.Yellow)
+                    .clickable(onClick = {
+                        val secondWindow = ComposeWindow()
+                        secondWindow.focusableWindowState = false
+                        secondWindow.type = java.awt.Window.Type.POPUP
+                        secondWindow.isAlwaysOnTop = true
+                        secondWindow.isUndecorated = true
+
+                        val locationOnScreen =
+                            AppManager.focusedWindow!!.window.locationOnScreen
+
+                        secondWindow.setBounds(
+                            locationOnScreen.x,
+                            locationOnScreen.y + 300,
+                            500,
+                            200
+                        )
+
+                        secondWindow.setContent(
+                            parentComposition = parentComposition
+                        ) {
+                            BoxContent(secondaryData)
+                        }
+
+                        secondWindow.invalidate()
+                        secondWindow.validate()
+                        secondWindow.isVisible = true
+                    })
+            ) {
+                BasicText(text = "Open second window!")
+            }
+        }
+    }
+}
+
+data class Data(val text: String, val counter: Int, val onClick: () -> Unit)
+
+@Composable
+fun BoxContent(data: Data) {
+    Box(
+        modifier = Modifier.size(100.dp, 50.dp)
+            .background(color = Color(255, 0, 0, 92))
+            .clickable(onClick = {
+                data.onClick.invoke()
+            })
+    ) {
+        BasicText(text = "${data.text} ${data.counter}")
+    }
+}
+The top-level window shows two red boxes. Clicking on each box increments the counter which then updates the screen. Clicking on the yellow box creates a ComposeWindow, configures it to be an undecorated "popup", and then places the same "red" composable in it.
+
+Click on the yellow box to see this secondary window. Now click in its red box - nothing changes in the display. Click a couple more times. Now click on the yellow box in the main window again to open another secondary window. Note that in this new window, the counter is displaying correct (updated) count. So the underlying data has changed, but those changes are not being reflected in the secondary window.
+
+This is with build 0.5.0-build224.
+
+The bigger example is in https://github.com/kirill-grouchnikov/aurora where popup content can be interactive - such as toggle menu buttons in popup menus that do not automatically close the popup. In this case, clicking on a toggle menu button should visually update its state, but it doesn't - even though the underlying data is changed as the result of a click.
