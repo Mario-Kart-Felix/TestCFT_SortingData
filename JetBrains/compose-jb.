@@ -1,0 +1,28 @@
+Try this:
+
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.platform.TestComposeWindow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+
+@OptIn(ExperimentalComposeUiApi::class)
+fun main() = runBlocking {
+    val window = TestComposeWindow(width = 800, height = 600, coroutineContext = coroutineContext)
+    window.setContent {
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(1000)
+                println("tick")
+            }
+        }
+    }
+
+    delay(5000)
+    window.dispose()
+}
+There still be a picture in the background to which compose will render.
+
+Probably in the future we can use fake picture instead of the real one. We can provide ability to override surface, so developers can write comething like this:
+
+TestComposeWindow(surface = Surface.makeNull(800, 600))
