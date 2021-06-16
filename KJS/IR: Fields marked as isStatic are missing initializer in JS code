@@ -1,0 +1,11 @@
+RELATES TO 2 ISSUES (1 UNRESOLVED)
+ 
+KT-18891JS: provide a way to declare static members (JsStatic?)
+ 
+KT-44945KJS / IR: Support assignable value parameters
+Discovered in Compose JS.
+
+Fields that are created in IR backend with isStatic=true are missing the initializer in generated JS code and return undefined (usually failing with ClassCastException).
+
+Expected behavior:
+isStatic is ignored in JS.
